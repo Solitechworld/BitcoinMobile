@@ -1,0 +1,23 @@
+name: Unit Tests
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Run unit tests & verification scripts
+        run: |
+          chmod +x ./gradlew
+          ./gradlew test
+          python3 native/scripts/check-kotlin-imports.py
+          python3 native/scripts/verify-blockbook-schema.py
+          python3 native/scripts/verify-rpc-models.py
