@@ -14,10 +14,23 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-      - name: Run unit tests & verification scripts
+
+      - name: Run unit tests
         run: |
           chmod +x ./gradlew
           ./gradlew test
-          python3 native/scripts/check-kotlin-imports.py
-          python3 native/scripts/verify-blockbook-schema.py
-          python3 native/scripts/verify-rpc-models.py
+
+      # Fast static heuristic for Kotlin symbols used without an import. Needs a
+      # source root; non-strict so documented false positives (unqualified enum
+      # entries in `when`, nested types) don't fail the build.
+      - name: Kotlin import sanity check
+        run: python3 native/scripts/check-kotlin-imports.py app/src/main/java
+
+  # The other two verification scripts cannot run in hermetic push/PR CI:
+  #   * verify-blockbook-schema.py needs a LIVE Blockbook server (--url/--address)
+  #   * verify-rpc-models.py needs a Bitcoin Core source tree (--core)
+  # They are release/local checks. verify-rpc-models is wired into build.yml
+  # behind the $BITCOIN_SRC guard; run verify-blockbook-schema by hand against a
+  # real server before a release:
+  #   python3 native/scripts/verify-blockbook-schema.py \
+  #     --url https://<blockbook-host>/api/v2 --address <addr-with-history>
